@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+
+{% block styles %}
+    <link href="{{ url_for('static', filename='./css/index.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block scripts %}
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="{{ url_for('static', filename='./js/bars.js') }}"></script>
+    <script src="{{ url_for('static', filename='./js/donut.js') }}"></script>
+    <script src="{{ url_for('static', filename='./js/main.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+    <header>
+        <h1>D3 from the DB</h1>
+        <h2 id="users">Users: </h2>
+    </header>
+    <div class="slide">
+        <div id="vis1" class="vis"></div>
+        <div id="vis2" class="vis"></div>
+        <div id="vis3" class="vis"></div>
+    </div>
+<script src="https://d3js.org/d3.v5.min.js"></script>
+
+<script>
+    var dummy_data = [[5,3], [10,17], [15,4], [2,8]];
+
+    var margin = {top: 20, right: 15, bottom: 60, left: 60}
+        , width = 360 - margin.left - margin.right
+        , height = 360 - margin.top - margin.bottom;
+
+    var x = d3.scaleLinear()
+        .domain([0, d3.max(dummy_data, function(d) { return d[0]; })])
+        .range([ 0, width ]);
+
+    var y = d3.scaleLinear()
+        .domain([0, d3.max(dummy_data, function(d) { return d[1]; })])
+        .range([ height, 0 ]);
+
+    var chart = d3.select('#vis3')
+        .append('svg:svg')
+        .attr('width', width + margin.right + margin.left)
+        .attr('height', height + margin.top + margin.bottom)
+        .attr('class', 'chart')
+
+    var main = chart.append('g')
+        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('class', 'main')
+
+    // draw the x axis
+    var xAxis = d3.axisBottom(x);
+
+    main.append('g')
+        .attr('transform', 'translate(0,' + height + ')')
+        .attr('class', 'main axis date')
+        .call(xAxis);
+
+    // draw the y axis
+    var yAxis = d3.axisLeft(y)
+
+    main.append('g')
+        .attr('transform', 'translate(0,0)')
+        .attr('class', 'main axis date')
+        .call(yAxis);
+
+    var g = main.append("svg:g");
+
+    g.selectAll("scatter-dots")
+        .data(dummy_data)
+        .enter().append("svg:circle")
+        .attr("cx", function (d,i) { return x(d[0]); } )
+        .attr("cy", function (d) { return y(d[1]); } )
+        .attr("r", 8);
+
+</script>
+{% endblock %}
