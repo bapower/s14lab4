@@ -11,17 +11,15 @@ class Scatter {
     g = null;
 
     // Configs
-    width = 360;
-    height = 360;
-    margin = {top: 40, right: 40, bottom: 40, left: 40};
-    radius = Math.min(this.width, this.height) / 2 - this.margin;
-    dataBins = {};
-    dataBinsWithLabels = {}
-    color = d3.scaleOrdinal()
-        .domain(this.dataBins)
-        .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#a05d88"]);
+    margin = {top: 40, right: 40, bottom: 40, left: 40}
+    width = 360 - this.margin.left - this.margin.right;
+    height = 360 - this.margin.top - this.margin.bottom;
+    dataVis = [];
     pie = d3.pie()
         .value(function(d) {return d.value; });
+    x;
+    y;
+    z;
 
     /*
     Constructor
@@ -41,61 +39,25 @@ class Scatter {
      * @returns void
      */
     init() {
-        const vis = this;
+        this.wrangle();
+        this.x = d3.scaleLinear()
+            .domain([-1, d3.max(this.dataVis, function(d) { return d[0]; })])
+            .range([ 0, this.width ]);
 
-        var dummy_data = [[5,3], [10,17], [15,4], [2,8]];
+        this.y = d3.scaleLinear()
+            .domain([0, d3.max(this.dataVis, function(d) { return d[1]; })])
+            .range([ this.height, 0 ]);
 
-        var margin = {top: 40, right: 40, bottom: 40, left: 40}
-            , width = 360 - margin.left - margin.right
-            , height = 360 - margin.top - margin.bottom;
+        this.z = d3.scaleSqrt()
+            .domain([1, d3.max(this.dataVis, function(d) { return d[2]; })])
+            .range([1, 6]);
 
-        var x = d3.scaleLinear()
-            .domain([0, d3.max(dummy_data, function(d) { return d[0]; })])
-            .range([ 0, width ]);
-
-        var y = d3.scaleLinear()
-            .domain([0, d3.max(dummy_data, function(d) { return d[1]; })])
-            .range([ height, 0 ]);
-
-        var chart = d3.select('#vis3')
+        this.svg = d3.select('#vis3')
             .append('svg:svg')
-            .attr('width', width + this.margin.right + this.margin.left)
-            .attr('height', height + this.margin.top + this.margin.bottom)
+            .attr('width', this.width + this.margin.right + this.margin.left)
+            .attr('height', this.height + this.margin.top + this.margin.bottom)
             .attr('class', 'chart')
-
-        var main = chart.append('g')
-            .attr('transform', 'translate(' + this.margin.left + ',' + this.margin.top + ')')
-            .attr('width', width)
-            .attr('height', height)
-            .attr('class', 'main')
-
-        // draw the x axis
-        var xAxis = d3.axisBottom(x);
-
-        main.append('g')
-            .attr('transform', 'translate(0,' + height + ')')
-            .attr('class', 'main axis date')
-            .call(xAxis);
-
-        // draw the y axis
-        var yAxis = d3.axisLeft(y)
-
-        main.append('g')
-            .attr('transform', 'translate(0,0)')
-            .attr('class', 'main axis date')
-            .call(yAxis);
-
-        var g = main.append("svg:g");
-
-        g.selectAll("scatter-dots")
-            .data(dummy_data)
-            .enter().append("svg:circle")
-            .attr("cx", function (d,i) { return x(d[0]); } )
-            .attr("cy", function (d) { return y(d[1]); } )
-            .attr("r", 8);
-
-        // // Now wrangle
-        //this.wrangle();
+        this.render()
     }
 
     /** @function wrangle()
@@ -104,32 +66,13 @@ class Scatter {
      * @returns void
      */
     wrangle() {
-        // Define this vis
-        const vis = this;
-
-        const data = vis.data.map(d => d.prog_lang);
-
-
-        for(let item of data) {
-            if(item in this.dataBins) {
-                this.dataBins[item]++;
-            }else {
-                this.dataBins[item] = 1;
-            }
-
-            if(item in this.dataBinsWithLabels) {
-                this.dataBinsWithLabels[item]["label"] = item;
-                this.dataBinsWithLabels[item]["value"]++;
-            }else {
-                this.dataBinsWithLabels[item] = {
-                    "label": item,
-                    "value": 1
-                }
-            }
+        for(let item of this.data) {
+            this.dataVis.push([
+                item.experience_yr,
+                item.hw1_hrs,
+                item.age
+            ])
         }
-
-        // Now render
-        this.render();
     }
 
     /** @function render()
@@ -138,31 +81,49 @@ class Scatter {
      * @returns void
      */
     render() {
-        // Define this vis
         const vis = this;
+        var main = this.svg.append('g')
+            .attr('transform', 'translate(' + this.margin.left + ',' + this.margin.top + ')')
+            .attr('width', this.width)
+            .attr('height', this.height)
+            .attr('class', 'main')
 
-        let data_ready = this.pie(d3.entries(this.dataBins));
-        //let data_ready = this.pie(d3.entries(this.dataBinsWithLabels.map(x => x.value)));
-        console.log(this.dataBins);
+        // draw the x axis
+        var xAxis = d3.axisBottom(this.x);
+
+        main.append('g')
+            .attr('transform', 'translate(0,' + this.height + ')')
+            .attr('class', 'main axis date')
+            .call(xAxis);
 
         this.svg.append("text")
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("text-anchor", "middle")
-            .style("font-size", "16px")
-            .text("Programming Languages");
+            .attr("text-anchor", "end")
+            .attr("x", this.width-40)
+            .attr("y", this.height+75 )
+            .text("Years of experience");
 
-        this.svg.selectAll('path')
-            .data(data_ready)
-            .enter()
-            .append('path')
-            .attr('d', d3.arc()
-                .innerRadius(85)
-                .outerRadius(vis.radius)
-            )
-            .attr('fill', function(d){ return(vis.color(d.data.key)) })
-            .attr("stroke", "black")
-            .style("stroke-width", "2px")
-            .style("opacity", 0.7);
+        // draw the y axis
+        var yAxis = d3.axisLeft(this.y)
+
+        main.append('g')
+            .attr('transform', 'translate(0,0)')
+            .attr('class', 'main axis date')
+            .call(yAxis);
+
+        this.svg.append("text")
+            .attr("text-anchor", "end")
+            .attr("x", this.width-420)
+            .attr("y", this.height-265)
+            .attr("transform", "rotate(-90)")
+            .text("Homework Hours")
+
+        let g = main.append("svg:g");
+
+        g.selectAll("scatter-dots")
+            .data(this.dataVis)
+            .enter().append("svg:circle")
+            .attr("cx", function (d) { return vis.x(d[0]); } )
+            .attr("cy", function (d) { return vis.y(d[1]); } )
+            .attr("r", function (d) { return vis.z(d[2]); } );
     }
 }

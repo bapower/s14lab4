@@ -11,7 +11,6 @@ class Donut {
     width = 360;
     height = 360;
     margin = 60;
-    //radius = Math.min(this.width, this.height) / 2 - this.margin;
     dataBins = {};
     color = d3.scaleOrdinal()
         .domain(Object.keys(this.dataBins))
@@ -37,7 +36,7 @@ class Donut {
      * @returns void
      */
     init() {
-        this.svg = d3.select("#vis2")
+        this.svg = d3.select(`#${this.target}`)
             .append("svg")
             .attr("width", this.width)
             .attr("height", this.height)
