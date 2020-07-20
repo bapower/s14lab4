@@ -13,7 +13,7 @@ class Scatter {
     // Configs
     width = 360;
     height = 360;
-    margin = 40;
+    margin = {top: 40, right: 40, bottom: 40, left: 40};
     radius = Math.min(this.width, this.height) / 2 - this.margin;
     dataBins = {};
     dataBinsWithLabels = {}
@@ -43,16 +43,59 @@ class Scatter {
     init() {
         const vis = this;
 
-        // append the svg object to the div called 'my_dataviz'
-        this.svg = d3.select("#vis2")
-            .append("svg")
-            .attr("width", vis.width)
-            .attr("height", vis.height)
-            .append("g")
-            .attr("transform", "translate(" + vis.width / 2 + "," + vis.height / 2 + ")")
+        var dummy_data = [[5,3], [10,17], [15,4], [2,8]];
+
+        var margin = {top: 40, right: 40, bottom: 40, left: 40}
+            , width = 360 - margin.left - margin.right
+            , height = 360 - margin.top - margin.bottom;
+
+        var x = d3.scaleLinear()
+            .domain([0, d3.max(dummy_data, function(d) { return d[0]; })])
+            .range([ 0, width ]);
+
+        var y = d3.scaleLinear()
+            .domain([0, d3.max(dummy_data, function(d) { return d[1]; })])
+            .range([ height, 0 ]);
+
+        var chart = d3.select('#vis3')
+            .append('svg:svg')
+            .attr('width', width + this.margin.right + this.margin.left)
+            .attr('height', height + this.margin.top + this.margin.bottom)
+            .attr('class', 'chart')
+
+        var main = chart.append('g')
+            .attr('transform', 'translate(' + this.margin.left + ',' + this.margin.top + ')')
+            .attr('width', width)
+            .attr('height', height)
+            .attr('class', 'main')
+
+        // draw the x axis
+        var xAxis = d3.axisBottom(x);
+
+        main.append('g')
+            .attr('transform', 'translate(0,' + height + ')')
+            .attr('class', 'main axis date')
+            .call(xAxis);
+
+        // draw the y axis
+        var yAxis = d3.axisLeft(y)
+
+        main.append('g')
+            .attr('transform', 'translate(0,0)')
+            .attr('class', 'main axis date')
+            .call(yAxis);
+
+        var g = main.append("svg:g");
+
+        g.selectAll("scatter-dots")
+            .data(dummy_data)
+            .enter().append("svg:circle")
+            .attr("cx", function (d,i) { return x(d[0]); } )
+            .attr("cy", function (d) { return y(d[1]); } )
+            .attr("r", 8);
 
         // // Now wrangle
-        this.wrangle();
+        //this.wrangle();
     }
 
     /** @function wrangle()

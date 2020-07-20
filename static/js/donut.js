@@ -10,15 +10,14 @@ class Donut {
     // Configs
     width = 360;
     height = 360;
-    margin = 40;
-    radius = Math.min(this.width, this.height) / 2 - this.margin;
+    margin = 60;
+    //radius = Math.min(this.width, this.height) / 2 - this.margin;
     dataBins = {};
-    dataBinsWithLabels = {}
     color = d3.scaleOrdinal()
-        .domain(this.dataBins)
-        .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#a05d88"]);
+        .domain(Object.keys(this.dataBins))
+        .range(d3.schemeDark2);
     pie = d3.pie()
-        .value(function(d) {return d.value; });
+        .value(function(d) {return d.value; })
 
     /*
     Constructor
@@ -38,17 +37,13 @@ class Donut {
      * @returns void
      */
     init() {
-        const vis = this;
-
-        // append the svg object to the div called 'my_dataviz'
         this.svg = d3.select("#vis2")
             .append("svg")
-            .attr("width", vis.width)
-            .attr("height", vis.height)
+            .attr("width", this.width)
+            .attr("height", this.height)
             .append("g")
-            .attr("transform", "translate(" + vis.width / 2 + "," + vis.height / 2 + ")")
+            .attr("transform", "translate(" + this.width / 2 + "," + this.height / 2 + ")");
 
-        // // Now wrangle
         this.wrangle();
     }
 
@@ -58,11 +53,7 @@ class Donut {
      * @returns void
      */
     wrangle() {
-        // Define this vis
-        const vis = this;
-
-        const data = vis.data.map(d => d.prog_lang);
-
+        const data = this.data.map(d => d.prog_lang);
 
         for(let item of data) {
             if(item in this.dataBins) {
@@ -70,19 +61,8 @@ class Donut {
             }else {
                 this.dataBins[item] = 1;
             }
-
-            if(item in this.dataBinsWithLabels) {
-                this.dataBinsWithLabels[item]["label"] = item;
-                this.dataBinsWithLabels[item]["value"]++;
-            }else {
-                this.dataBinsWithLabels[item] = {
-                    "label": item,
-                    "value": 1
-                }
-            }
         }
 
-        // Now render
         this.render();
     }
 
@@ -95,28 +75,64 @@ class Donut {
         // Define this vis
         const vis = this;
 
-        let data_ready = this.pie(d3.entries(this.dataBins));
-        //let data_ready = this.pie(d3.entries(this.dataBinsWithLabels.map(x => x.value)));
-        console.log(this.dataBins);
+        var data_ready = this.pie(d3.entries(this.dataBins))
+        var radius = Math.min(this.width, this.height) / 2 - this.margin
 
-        this.svg.append("text")
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("text-anchor", "middle")
-            .style("font-size", "16px")
-            .text("Programming Languages");
+        var arc = d3.arc()
+            .innerRadius(radius * 0.5)
+            .outerRadius(radius * 0.8)
 
-        this.svg.selectAll('path')
+        var outerArc = d3.arc()
+            .innerRadius(radius * 0.9)
+            .outerRadius(radius * 0.9)
+
+        this.svg
+            .selectAll('allSlices')
             .data(data_ready)
             .enter()
             .append('path')
-            .attr('d', d3.arc()
-                .innerRadius(85)
-                .outerRadius(vis.radius)
-            )
-            .attr('fill', function(d){ return(vis.color(d.data.key)) })
-            .attr("stroke", "black")
+            .attr('d', arc)
+            .attr('fill', function (d) {
+                return (vis.color(d.data.key))
+            })
+            .attr("stroke", "white")
             .style("stroke-width", "2px")
-            .style("opacity", 0.7);
+            .style("opacity", 0.7)
+
+        this.svg
+            .selectAll('allPolylines')
+            .data(data_ready)
+            .enter()
+            .append('polyline')
+            .attr("stroke", "black")
+            .style("fill", "none")
+            .attr("stroke-width", 1)
+            .attr('points', function (d) {
+                var posA = arc.centroid(d)
+                var posB = outerArc.centroid(d)
+                var posC = outerArc.centroid(d);
+                var midangle = d.startAngle + (d.endAngle - d.startAngle) / 2
+                posC[0] = radius * 0.95 * (midangle < Math.PI ? 1 : -1);
+                return [posA, posB, posC]
+            })
+
+        this.svg
+            .selectAll('allLabels')
+            .data(data_ready)
+            .enter()
+            .append('text')
+            .text(function (d) {
+                return d.data.key + ": " + d.data.value
+            })
+            .attr('transform', function (d) {
+                var pos = outerArc.centroid(d);
+                var midangle = d.startAngle + (d.endAngle - d.startAngle) / 2
+                pos[0] = radius * 0.99 * (midangle < Math.PI ? 1 : -1);
+                return 'translate(' + pos + ')';
+            })
+            .style('text-anchor', function (d) {
+                var midangle = d.startAngle + (d.endAngle - d.startAngle) / 2
+                return (midangle < Math.PI ? 'start' : 'end')
+            })
     }
 }
